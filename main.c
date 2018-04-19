@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-//extern void cmplx_add_s(double a_real, double a_img, double b_real, double b_img, double *res_real, double *res_img);
-
+extern void cmplx_add_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
+extern void cmplx_div_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
+extern void cmplx_sub_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
+extern void  cmplx_mult_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
+extern void eval_derivative_s(double *real_arr , double* img_arr,double* res_real_arr,double* res_img_arr,int len);
+extern int* func_malloc();
+extern void test_arr_float(double* arr,int len,double i);
 void cmplx_add(double a_real, double a_img, double b_real, double b_img, double *res_real, double *res_img);
 
 void cmplx_sub(double a_real, double a_img, double b_real, double b_img, double *res_real, double *res_img);
@@ -62,8 +67,8 @@ void eval_poly(double *real_arr , double* img_arr, double *z_real, double* z_img
 void eval_derivative(double *real_arr , double* img_arr,double* res_real_arr,double* res_img_arr,int len){
     //x^2 + 2x+3
     int i=0,pow;
-    for(;i<len-1;i++){
-        pow=len-i-1;
+    for(;i<len;i++){
+        pow=len-i;
         res_real_arr[i]=real_arr[i]*pow;
         res_img_arr[i]=img_arr[i]*pow;
     }
@@ -91,6 +96,7 @@ void cmplx_sub(double a_real, double a_img, double b_real, double b_img, double 
 
 void cmplx_div(double a_real, double a_img, double b_real, double b_img, double *res_real, double *res_img) {
     double divisor=(b_real*b_real)+(b_img*b_img);
+    printf("divisor: %lf\n",divisor);
     *res_real = (a_real * b_real)+(a_img * b_img);
     *res_real=*res_real/divisor;
     *res_img=(a_img * b_real)-(a_real * b_img);
@@ -121,41 +127,79 @@ void newton_rashford_impl(double *real_arr , double* img_arr, double epsilon,int
 }
 
 int main() {
-    double a_real=1.3, a_img=0.2, b_real=15.3333, b_img=0.102,res_real=0,res_img=0,i=0;
-    cmplx_div(a_real,a_img,b_real,b_img,&res_real,&res_img);
-    printf("%lf + %lfi\n",res_real,res_img);
-
-    double arr_real[3]={1.0,2.0,3.0};
-    double arr_img[3]={0.5,1.0,0.0};
+    double a_real=1.3, a_img=0.2, b_real=5.2, b_img=0.1,res_real=0,res_img=0;
+//    cmplx_div(a_real,a_img,b_real,b_img,&res_real,&res_img);
+//    printf("%lf + %lfi\n",res_real,res_img);
+//
+    double arr_real[3]={5.3,2.0,3.0};
+    double arr_img[3]={0.3,1.0,0.0};
     double res_arr_real[2]={0.0,0.0},res_arr_img[2]={0.0,0.0};
     printf("before dep: (%lf+%lf)x^2 +(%lf+%lf)x+(%lf+%lf)\n\n",arr_real[0],arr_img[0],arr_real[1],arr_img[1],arr_real[2],arr_img[2]);
     eval_derivative(arr_real,arr_img,res_arr_real,res_arr_img,2);
-    printf("after dep: (%lf+%lf)x+(%lf+%lf)",res_arr_real[0],res_arr_img[0],res_arr_real[1],res_arr_img[1]);
+    printf("after dep: (%lf+%lf)x+(%lf+%lf)\n",res_arr_real[0],res_arr_img[0],res_arr_real[1],res_arr_img[1]);
+
+    double res_arr_real_s[2]={0.0,0.0},res_arr_img_s[2]={0.0,0.0};
+    eval_derivative_s(arr_real,arr_img,res_arr_real_s,res_arr_img_s,2);
+    printf("after dep s: (%lf+%lf)x+(%lf+%lf)\n",res_arr_real_s[0],res_arr_img_s[0],res_arr_real_s[1],res_arr_img_s[1]);
+
+//
+//
+//    double z_real=1;
+//    double z_img=0;
+//      double res_real=0;
+//    double res_img=0;
+//    printf("before dep: (%lf+%lf)x^2 +(%lf+%lf)x+(%lf+%lf)\n\n",arr_real[0],arr_img[0],arr_real[1],arr_img[1],arr_real[2],arr_img[2]);
+//    eval_poly(arr_real,arr_img,&z_real,&z_img,&res_real,&res_img,2);
+//    printf("the poly value for z= (%lf) is (%lf+%lfi)\n",z_real,res_real,res_img);
+//
+//
+//    printf("sqroot %lf\n", sqroot(1.5));
+//
+//    printf("div %lf\n",make_normal(&res_real,&res_img));
+//
+//
+//    printf("close_enoughs %d\n",close_enough(&res_real,&res_img,0.1));
+//
+//    double test1_real_arr[3]={1.0 , -4.0 , 4.0};
+//    double test1_img_arr[3]={0.0 , 0.0 , 0.0};
+//    double epsilon=0.00000000001;
+//    int order=2;
+//    double init_real=1.0, init_img=-1.0;
+//    newton_rashford_impl(test1_real_arr ,test1_img_arr, epsilon, order,  &init_real,&init_img);
+    printf("a: real=%lf, img=%lf\n",a_real,a_img);
+    printf("b: real=%lf, img=%lf\n",b_real,b_img);
+
+//    cmplx_add_s(&a_real,&a_img,&b_real,&b_img, &res_real, &res_img);
+//
+//    printf("add: real=%lf, img=%lf\n",res_real,res_img);
+//    cmplx_sub_s(&a_real,&a_img,&b_real,&b_img, &res_real, &res_img);
+//    printf("sub: real=%lf, img=%lf\n",res_real,res_img);
+//    cmplx_mult_s(&a_real,&a_img,&b_real,&b_img, &res_real, &res_img);
+//    printf("mult: real=%lf, img=%lf\n",res_real,res_img);
 
 
-    double z_real=1;
-    double z_img=0;
-    res_real=0;
-    res_img=0;
-    printf("before dep: (%lf+%lf)x^2 +(%lf+%lf)x+(%lf+%lf)\n\n",arr_real[0],arr_img[0],arr_real[1],arr_img[1],arr_real[2],arr_img[2]);
-    eval_poly(arr_real,arr_img,&z_real,&z_img,&res_real,&res_img,2);
-    printf("the poly value for z= (%lf) is (%lf+%lfi)\n",z_real,res_real,res_img);
 
+    cmplx_div(a_real,a_img,b_real,b_img, &res_real, &res_img);
+    printf("div: real=%lf, img=%lf\n",res_real,res_img);
 
-    printf("sqroot %lf\n", sqroot(1.5));
+//    cmplx_div_s(&a_real,&a_img,&b_real,&b_img, &res_real, &res_img);
+    printf("div_s: real=%lf, img=%lf\n",res_real,res_img);
+    int *test=NULL;
+    test= func_malloc();
+    printf("div_s: real=%d,img:%d \n",test[0],test[1]);
 
-    printf("div %lf\n",make_normal(&res_real,&res_img));
-
-
-    printf("close_enoughs %d\n",close_enough(&res_real,&res_img,0.1));
-
-    double test1_real_arr[3]={1.0 , -4.0 , 4.0};
-    double test1_img_arr[3]={0.0 , 0.0 , 0.0};
-    double epsilon=0.00000000001;
-    int order=2;
-    double init_real=1.0, init_img=-1.0;
-    newton_rashford_impl(test1_real_arr ,test1_img_arr, epsilon, order,  &init_real,&init_img);
-
+//
+//    double arr_real[3]={1.0,2.0,3.0};
+//    double arr_img[3]={0.5,1.0,0.0};
+//    double res_arr_real[2]={0.0,0.0},res_arr_img[2]={0.0,0.0};
+//    printf("before dep: (%lf+%lf)x^2 +(%lf+%lf)x+(%lf+%lf)\n\n",arr_real[0],arr_img[0],arr_real[1],arr_img[1],arr_real[2],arr_img[2]);
+//    eval_derivative(arr_real,arr_img,res_arr_real,res_arr_img,2);
+//    printf("after dep: (%lf+%lf)x+(%lf+%lf)\n",res_arr_real[0],res_arr_img[0],res_arr_real[1],res_arr_img[1]);
+//    double arr[2];
+//    printf("before: arr[0]: %lf arr[1]:%lf\n",arr[0],arr[1]);
+//
+//    test_arr_float(arr,2,0.2);
+//    printf("after arr[0]: %lf arr[1]:%lf\n",arr[0],arr[1]);
 
     return 0;
 }
