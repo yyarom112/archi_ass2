@@ -2,6 +2,7 @@
 	push		rbp
 	mov		rbp, rsp
 	finit
+	;init_globals
 %endmacro
 
 %macro funcend 0
@@ -10,31 +11,43 @@
 	ret
 %endmacro
 
-%macro malloc_func 1
+%macro malloc_macro 1
 	mov  rcx, %1                   ; request %1 bytes
 	call malloc                    ; allocate memory
+%endmacro
+
+%macro init_globals 0
+	mov qword [tmp],0
+	mov qword [divisor],0
+	mov qword [pow],0
+	mov qword [i],0
 %endmacro
 
 section .data
 	floatformat: 		DB 	"%lf",0
 	printcheckFormat:	DB	"rel %lf img %lf",4,0
 	neg:			DB	-1
+	tmp:	DQ 0.0	;global floating point varaiebl
+	divisor: DQ 0.0  ;global floating point for divide function
+	pow: DQ 0	;global int for eval_derivative ->pow of argumentS
+	i: DQ 0		;global int for eval_derivative ->run index
+	
 
 SECTION .TEXT
 	GLOBAL cmplx_add_s
 	GLOBAL cmplx_sub_s
 	GlOBAL cmplx_mult_s
 	GlOBAL cmplx_div_s
-
+	GlOBAL eval_derivative_s
 	GlOBAL func_malloc
+
+
+	GlOBAL test_arr_float
 
 	extern malloc
 	extern free
 	extern printf
 
-section .data
-	tmp:	DQ 0.0	;global floating point varaiebl
-	divisor DQ 0.0  ;global floating point for divide function
 
 ;argument order: rdi->rsi->rdx->rcx->r8->r9->stack
 
@@ -85,10 +98,8 @@ cmplx_mult_s:
 	funcstart
 	mov qword[r8], 0	;*res_real=0
 	mov qword[r9], 0	;*res_img=0
+	
 	;real_mult
-
-
-
 
 	;(a_img*b_img)
 	fld qword [rsi]		;st0=[rsi]=a_img
@@ -106,9 +117,8 @@ cmplx_mult_s:
 	;a_real*b_real-(a_img*b_img)
 	fst st1			;st1=-(a_img*b_img)
 	fld qword [r8]		;st0=a_real*b_real
-	fsub			;st0=a_real*b_real+-(a_img*b_img)
-	fst qword [r8]		;*res_real=st0=a_real*b_real+-(a_img*b_img)
-
+	fsub			;st0=a_real*b_real-(a_img*b_img)
+	fst qword [r8]		;*res_real=st0=a_real*b_real-(a_img*b_img)
 
 	;img_mult
 
@@ -140,7 +150,6 @@ cmplx_div_s:
 	funcstart
 
 	;;divisor-(b.real)^2+(b.img)^2
-	
 
 	;;b.real^b.real
 	fld qword [rdx]		;st0=M[rdx]=b_real
@@ -148,7 +157,6 @@ cmplx_div_s:
 	fld qword [rdx]		;st0=M[rdx]=b_real
 	fmul			;st0=b_real*b_real
 	fst qword [tmp]		;tmp=b_real^2
-
 
 	;;b.img*b.img
 	fld qword [rcx]		;st0=M[rcx]=b_img
@@ -221,11 +229,74 @@ cmplx_div_s:
 
 func_malloc:
 	funcstart
-	malloc_func 8
+	malloc_macro 8
 
 	mov  qword  [rax],   1      ; write "1" into low 32 bits
 	mov  qword  [rax+4], 2      ; write "2" into high 32 bits
 
+	funcend
+
+
+eval_derivative_s:
+	;; r9=i , r10=pow , r11=number of iterations , r12=tmp_register
+	;; example for torder:  x^2+3x+4
+	;; assumption - len= the highest order in the funs, not the size of array
+	
+	funcstart
+;; r9=i , r10=pow , r11=number of iterations , r12=tmp_register
+	;; example for torder:  x^2+3x+4
+	;; assumption - len= the highest order in the funs, not the size of array
+	
+	funcstart
+	;mov r9,0	;i=0
+	mov r10,0	;pow=0	
+	mov r11,r8	;r11=r8=len (for the iteration)
+	.for:
+		cmp r11,0   ;if for terminate - jump to end of func
+		je .end_for
+		
+		;;calc pow
+		mov r10,r8		;r10=pow= len
+		;sub r10,r9		;r10=pow=len-i
+		;;TEST
+		mov qword[tmp],r10
+		mov r9 ,[tmp]
+		funcend
+
+
+		;;calc real part
+		mov r12,[rdi+r9*8] 	;r12=real_arr[i]
+		mov [tmp],r12		;tmp=r12=real_arr[i]
+		mov [pow],r10		;pow=r10=len-i
+		fld qword [tmp]		;st0=global[tmp]=real_arr[i]
+		fst st1			;st1=st0=real_arr[i]
+		fld qword [pow]		;st0=global[pow]=pow
+		fmul			;st0=real_arr[i]*pow
+		fst qword[tmp]		;tmp=real_arr[i]*pow
+		mov r12,qword [tmp]	;r12=tmp=real_arr[i]*pow
+		mov [rdx+r9*8],r12	;res_real_arr[i]=real_arr[i]*pow
+
+
+
+		;;calc img part
+		mov r12,0
+		mov r12,[rsi+r9*8]	;r12=img_arr[i]
+		mov [tmp],r12		;tmp=r12=img_arr[i]
+		mov [pow],r10		;pow=r10=len-i
+		fld qword [tmp]		;st0=global[tmp]=img_arr[i]
+		fst st1			;st1=st0=img_arr[i]
+		fld qword [pow]		;st0=global[pow]=pow
+		fmul			;st0=img_arr[i]*pow
+		fst qword[tmp]		;tmp=img_arr[i]*pow
+		mov r12,qword [tmp]	;r12=tmp=img_arr[i]*pow
+
+		mov [rcx+r9*8],r12	;res_img_arr[i]=img_arr[i]*pow
+
+		;;prepare next iteration
+		dec r11			;num_of_iters--
+		inc r9			;i++
+		jmp .for
+	.end_for:
 	funcend
 
 
@@ -235,12 +306,29 @@ func_malloc:
 
 
 
+test_arr_float:
+	funcstart
+	mov r9,0
+	mov r11,rsi
+	.for:
+		cmp r11,0   ;if for terminate - jump to end of func
+		je .end_for
+		mov [rdi+r9*8],rdx	;res_img_arr[i]=50.2
+
+		;;prepare next iteration
+		dec r11			;num_of_iters--
+		inc r9			;i++
+		jmp .for		
 
 
 
+	.end_for:
+		funcend
 
-
-
+		;;test
+		;;mov rdx, 3
+		;mov rcx, r12
+		;;funcend
 
 
 
