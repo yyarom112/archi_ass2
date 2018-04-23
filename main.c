@@ -4,7 +4,10 @@ extern void cmplx_add_s(double* a_real, double* a_img, double* b_real, double* b
 extern void cmplx_div_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
 extern void cmplx_sub_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
 extern void  cmplx_mult_s(double* a_real, double* a_img, double* b_real, double* b_img, double *res_real, double *res_img);
-extern void eval_derivative_s(double *real_arr , double* img_arr,double* res_real_arr,double* res_img_arr,int len,double* test);
+extern void eval_derivative_s(double *real_arr , double* img_arr,double* res_real_arr,double* res_img_arr,int len);
+extern double sqroot_s(double* n,double* out);
+extern double make_normal_s(double *a_real, double *a_img);
+extern  int close_enough_s(double *a_real, double *a_img,double epsilon);
 extern int* func_malloc();
 extern void test_arr_float(double* arr,int len,double i);
 void cmplx_add(double a_real, double a_img, double b_real, double b_img, double *res_real, double *res_img);
@@ -127,28 +130,46 @@ void newton_rashford_impl(double *real_arr , double* img_arr, double epsilon,int
 }
 
 int main() {
-    double a_real=1.3, a_img=0.2, b_real=5.2, b_img=0.1,res_real=0,res_img=0;
+//    double a_real=1.3, a_img=0.2, b_real=5.2, b_img=0.1,res_real=0,res_img=0;
 //    cmplx_div(a_real,a_img,b_real,b_img,&res_real,&res_img);
-//    printf("%lf + %lfi\n",res_real,res_img);
+//   printf("%lf + %lfi\n",res_real,res_img);
+
+//    double arr_real[3]={5.3,2.0,3.0};
+//    double arr_img[3]={0.3,1.0,0.0};
+////    double res_arr_real[2]={0.0,0.0},res_arr_img[2]={0.0,0.0};
+////    printf("before dep: (%lf+%lf)x^2 +(%lf+%lf)x+(%lf+%lf)\n\n",arr_real[0],arr_img[0],arr_real[1],arr_img[1],arr_real[2],arr_img[2]);
+////    eval_derivative(arr_real,arr_img,res_arr_real,res_arr_img,2);
+////    printf("after dep: (%lf+%lf)x+(%lf+%lf)\n",res_arr_real[0],res_arr_img[0],res_arr_real[1],res_arr_img[1]);
 //
-    double arr_real[3]={5.3,2.0,3.0};
-    double arr_img[3]={0.3,1.0,0.0};
-    double res_arr_real[2]={0.0,0.0},res_arr_img[2]={0.0,0.0};
-    printf("before dep: (%lf+%lf)x^2 +(%lf+%lf)x+(%lf+%lf)\n\n",arr_real[0],arr_img[0],arr_real[1],arr_img[1],arr_real[2],arr_img[2]);
-    //eval_derivative(arr_real,arr_img,res_arr_real,res_arr_img,2);
-    //printf("after dep: (%lf+%lf)x+(%lf+%lf)\n",res_arr_real[0],res_arr_img[0],res_arr_real[1],res_arr_img[1]);
+//    double* res_arr_real_s=malloc(2*sizeof(double));
+//    double* res_arr_img_s=malloc(2*sizeof(double));
+////    double test;
+//    eval_derivative_s(arr_real,arr_img,res_arr_real_s,res_arr_img_s,2);
+//    printf("%lf\n",res_arr_img_s);
+//
+//    printf("after dep s: (%f+%f)x+(%f+%f)\n",res_arr_real_s[0],res_arr_img_s[1],res_arr_real_s[1],res_arr_img_s[1]);
 
-    double res_arr_real_s[2],res_arr_img_s[2];
-    double test;
-    eval_derivative_s(arr_real,arr_img,res_arr_real_s,res_arr_img_s,2,&test);
-    if(test>0)
-    printf("****r9*****  :%lf \n",test);
-    else{
-        printf("*********  :");
+    double n=2;
+    printf("sqroot: %lf\n",sqroot(n));
+    double out,tmp;
+    tmp=sqroot_s(&n,&out);
+    printf("sqroot_s: %lf\n",&out);
 
-    }
-    printf("after dep s: (%f+%f)x+(%f+%f)\n",res_arr_real_s,res_arr_img_s,res_arr_real_s[1],res_arr_img_s[1]);
-//s
+    double a_real=30.313,a_img=41.222222222,out1=0,out2=0;
+    out1=make_normal(&a_real,&a_img);
+    out2=make_normal_s(&a_real,&a_img);
+    printf("make_normal: %lf\n",out1);
+    printf("make_normal_s: %lf\n",out2);
+
+    double epsilon=1;
+    int out3=close_enough(&a_real,&a_img,epsilon);
+    int out4=close_enough_s(&a_real,&a_img,epsilon);
+    printf("close_enough: %d\n",out3);
+    printf("close_enough_s: %d\n",out4);
+
+
+
+//
 ////
 ////
 ////    double z_real=1;
