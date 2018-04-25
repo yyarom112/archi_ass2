@@ -93,21 +93,37 @@ section .data
 	index_coeff: DQ 0
 	real_coeff: DQ 0			
 	img_coeff: DQ 0
-	init_img_coeff: DQ 0	;init point arg- NOT TOUCH-> only in main!!
-	init_real_coeff: DQ 0	;init point arg- NOT TOUCH-> only in main!!
+	;init_img_coeff: DQ 0	;init point arg- NOT TOUCH-> only in main!!
+	;init_real_coeff: DQ 0	;init point arg- NOT TOUCH-> only in main!!
+	int_tmp: DQ 0
 
 	;;meseges for scanf & printf
 	epsilon_msg:db " epsilon = %lf",0
 	order_input:db " order = %d",0
 	coeff_input: db " coeff %d = %lf %lf",0
-	initial_point_input: db "initial = %lf %lf",0
-	div_real_arr:DQ 0
-	div_img_arr:DQ 0
-	int_tmp: DQ 0
+	initial_point_input: db " initial = %lf %lf",0
+	print_val: db "value = %d",0
+	print_something: db "*************",0
+	print_final_result: db "root = %lf %lf",0
+
 
 section .bss
-	order: resq 1
-	arr:resq 1	
+	order:		resq 1
+	div_order:	resq 1
+	div_real_arr:	resq 1	
+	div_img_arr:	resq 1
+	real_arr:	resq 1
+	img_arr:	resq 1
+	f_real:		resq 1
+	f_img:		resq 1
+	fd_real:	resq 1
+	fd_img:		resq 1
+	c_real:		resq 1
+	c_img:		resq 1
+	init_img_coeff:	resq 1
+	init_real_coeff:resq 1
+
+	arr:		resq 1	
 
 SECTION .TEXT
 	GLOBAL cmplx_add_s
@@ -157,6 +173,7 @@ main:
 	mov rdi,order_input			;arg=formaot of get order
 	lea rsi, [int_tmp]			;return val-> order
 	call scanf
+	returnfunc
 	mov rdi, 0
 	mov dword eax,[int_tmp]
 	mov dword[order],eax
@@ -171,11 +188,9 @@ main:
 	call calloc
 	mov qword[arr],rax		;arr=return val of calloc
 
-	
 	;;coeff while
 	
 	mov r9,0
-
 	mov r10, qword[order]		;r10=order
 	mov qword[i],r10		;i is num of iterration
 	cmp r10,0			;check if the input order is 0
@@ -214,22 +229,63 @@ main:
 		;prepare next iteration
 		iminusminus
 		mov r12, qword[i]
-		cmp r12,0		;if==0 ->end of iterations
+		;cmp r12,0		;if i<0 ->end of iterations
+		;dec r10
+		;cmp r10,0
 		jl .coeff_while_end
 		jmp .coeff_while
 
 	.coeff_while_end:	
 
 	;get the initial_point_input
-		
+	callfunc	
 	mov rax,1				;num of args is only 1- 1 line of input left
 	mov rdi,initial_point_input		;get the scanf params into rdi
 	lea rsi,[init_real_coeff]
 	lea rdx,[init_img_coeff]
 	call scanf
+	returnfunc
+
+	;arrays-pointers define
+	mov r10, qword [arr]			;r10=arr
+	mov qword[real_arr],r10			;real_arr=*arr=*real_arr
+	mov r11, qword [order]			;r11=order
+	imul r11,8				;need to jump *8 because double
+	add r10,r11
+	mov qword[img_arr],r10			;img_arr=*img_arr
+	add r10,r11				;after adding to r10 order*2 r10 points to the start of the div_real_arr
+	mov qword[div_real_arr], r10
+	sub r11,8				;r11=order-1(in double)
+	add r10,r11				;r10=arr+2*order+(order-1)
+	mov qword[div_img_arr], r10
 
 
+
+	;;void newton_rashford_impl(double *real_arr , double* img_arr, double epsilon,int order, double* init_real, double* init_img)
+	callfunc				;backup registers
+	mov rdi,real_arr
+	mov rsi,img_arr
+	mov rdx,epsilon
+	mov rcx,order
+	mov r8, init_real_coeff
+	mov r9, init_img_coeff
+	call newton_rashford_impl_s
+	returnfunc
+
+	;;print the result
+	push rdi
+	mov rdi,print_final_result
+	movsd xmm0,qword[init_real_coeff]
+	movsd xmm1,qword[init_img_coeff]
+	mov rax, 2
+	call printf
+	pop rdi
 	funcend
+
+
+
+	
+;***********************************
 
 
 
@@ -559,11 +615,10 @@ close_enough_s:
 	
 
 eval_poly_s:
-	;argument list: rdi=*real_arr rsi=*img_arr rdi=z_img rcx=z_img r8=res_real r9=_res_img	
+	;argument list: rdi=*real_arr rsi=*img_arr rdx=z_img rcx=z_img r8=res_real r9=_res_img	
 
 	funcstart
 
-	;mov qword[pow], 3		;r10=pow
 	mov qword[i],1			;i=1
 	
 	;*res img=img_arr[0]
@@ -637,54 +692,144 @@ eval_poly_s:
 newton_rashford_impl_s:
 	;list: rdi=*real_arr rsi=*img_arr rdi=*epsilon rcx=*order r8=*init_real r9=*init_img
 	
-funcstart	
-	;;double* div_real_arr=malloc((order-1)* sizeof(double));
+	funcstart
 	
-	mov r10,qword[rcx]				;r10=order
-	;dec r10					;r10=order-1
-	mov r11,16
-	imul r10,r11				;r10=((order-1)*sizeof(double))*2-one malooc for two arrays
+
+	;;eval_derivative(real_arr,img_arr,div_real_arr,div_img_arr,order);
+	callfunc				;backup register
+	;real_arr and img_arr in place
+	mov rdx,div_real_arr
+	mov rcx,div_img_arr
+	mov r8, qword[order]
+	call eval_derivative_s
+	returnfunc
 	
 	
-	callfunc
-	mov rdi,1024
-	mov rcx,r10
-	;call malloc				;rax=malloc((order-1)* sizeof(double))*2; 
+	;;double f_real,f_img,fd_real,fd_img,c_real,c_img;
+	;initial values	
+	mov r10,0
+	mov qword[f_real],r10
+	mov qword[f_img],r10
+	mov qword[fd_real],r10
+	mov qword[fd_img],r10
+	mov qword[c_real],r10
+	mov qword[c_img],r10
+
+	;; eval_poly(real_arr,img_arr,init_real,init_img,&f_real,&f_img,order);
+	callfunc				;backup register
+	;real_arr and img_arr are in place
+	mov rdx,init_real_coeff
+	mov rcx,init_img_coeff
+	mov r8,f_real
+	mov r9,f_img
+	mov r10,qword[order]			;because pow changes from order to order-1 in different cases
+	mov qword[pow],r10
+	call eval_poly_s
 	returnfunc
 
-	mov qword[div_real_arr],rax		;div_real_arr=malloc((order-1)* sizeof(double))
-	add rax, r10				;rax=	div_real_arr+((order-1)* sizeof(double))
-	mov qword[div_img_arr],rax		;div_img_arr=div_real_arr+((order-1)* sizeof(double))
-	
-
-	;;eval_poly(real_arr,img_arr,init_real,init_img,&f_real,&f_img,order);
-	
-	callfunc
-	
-	;args-rdi,rsi is in place
-	mov r10,qword[rcx]			;r10=order
-	mov qword[pow],r10			;arg7=pow=order
-	mov r8,rdx				;arg3=*init_real
-	mov r9,rcx				;arg4=*init_img
-	mov r8,return_val1			;arg5=r8=*return_val1=res_real
-	mov r9,return_val2			;arg6=r9=*return_val2=res_img
-
-	call eval_poly_s			;eval f(x)
-
-	returnfunc
-
-
-	mov r10, qword[return_val1]
-	mov qword[rdi],r10
 	;;eval_poly(div_real_arr,div_img_arr,init_real,init_img,&fd_real,&fd_img,order-1);
+	callfunc				;backup register
+	mov rdi,div_real_arr
+	mov rsi,div_img_arr
+	mov rdx,init_real_coeff
+	mov rcx,init_img_coeff
+	mov r8,fd_real
+	mov r9,fd_img
+	mov r10,qword[order]			;because pow changes from order to order-1 in different cases
+	dec r10
+	mov qword[div_order],r10
+	mov qword[pow],r10
+	call eval_poly_s
+	returnfunc
 
+	;;cmplx_div(f_real,f_img,fd_real,fd_img,&c_real,&c_img);
+	callfunc				;backup register
+	mov rdi,f_real
+	mov rsi,f_img
+	mov rdx,fd_real
+	mov rcx,fd_img
+	mov r8,c_real
+	mov r9,c_img
+	;call cmplx_div_s
+	returnfunc
 
+	.while:
+		;check cond
+		callfunc				;backup register
+		mov rdi,c_real
+		mov rsi,c_img
+		call make_normal_s
+		mov qword[tmp],rax			;move the result of normal in tmp
+		returnfunc
+		fld qword[epsilon]
+		fst st1					;st1=st0=epsilon
+		fld qword[tmp]
+		fsub					;st0=normal-epsilon
+		fst qword[tmp]				;tmp=normal-epsilon
+		fldz
+		fst st1
+		fld qword[tmp]
+		fcom
+		jl .while_end
+
+		;;the body of while
+		;; eval_poly(real_arr,img_arr,init_real,init_img,&f_real,&f_img,order);
+		callfunc				;backup register
+		;real_arr and img_arr are in place
+		mov rdx,init_real_coeff
+		mov rcx,init_img_coeff
+		mov r8,f_real
+		mov r9,f_img
+		mov r10,qword[order]			;because pow changes from order to order-1 in different cases
+		mov qword[pow],r10
+		call eval_poly_s
+		returnfunc
+
+		;;eval_poly(div_real_arr,div_img_arr,init_real,init_img,&fd_real,&fd_img,order-1);
+		callfunc				;backup register
+		mov rdi,div_real_arr
+		mov rsi,div_img_arr
+		mov rdx,init_real_coeff
+		mov rcx,init_img_coeff
+		mov r8,fd_real
+		mov r9,fd_img
+		mov r10,qword[order]			;because pow changes from order to order-1 in different cases
+		dec r10
+		mov qword[div_order],r10
+		mov qword[pow],r10
+		call eval_poly_s
+		returnfunc
+
+		;;cmplx_div(f_real,f_img,fd_real,fd_img,&c_real,&c_img);
+		callfunc				;backup register
+		mov rdi,f_real
+		mov rsi,f_img
+		mov rdx,fd_real
+		mov rcx,fd_img
+		mov r8,c_real
+		mov r9,c_img
+		call cmplx_div_s
+		returnfunc
+
+		;; *init_real-=c_real;
+		fld qword[c_real]
+		fst st1
+		fld qword[init_real_coeff]
+		fsub
+		fst qword[init_real_coeff]
+
+		;; *init_img-=c_img;
+		fld qword[c_img]
+		fst st1
+		fld qword[init_img_coeff]
+		fsub
+		fst qword[init_img_coeff]
 		
+		jmp .while
 
 
-	
-	
-funcend
+	.while_end:
+		funcend
 
 
 
@@ -711,11 +856,4 @@ test_arr_float:
 		;;prepare next iteration
 		dec r11			;num_of_iters--
 		inc r9			;i++
-		jmp .for		
-
-
-
-
-
-
-
+		jmp .for	
