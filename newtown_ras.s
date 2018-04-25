@@ -86,8 +86,8 @@ section .data
 	n: DQ 0		;global int for sqoort
 	tmp_real:DQ 0	;Eveal Poly
 	tmp_img: DQ 0	;Eval poly
-	return_val1:DQ 0
-	return_val2:DQ 0
+	;return_val1:DQ 0
+	;return_val2:DQ 0
 	epsilon: DQ 0
 	;order: DQ 0
 	index_coeff: DQ 0
@@ -105,9 +105,12 @@ section .data
 	print_val: db "value = %d",0
 	print_something: db "*************",0
 	print_final_result: db "root = %lf %lf",0
+	print_tmp: db "tmp = %lf  ",0
 
 
 section .bss
+	return_val1:	resq 1
+	return_val2:	resq 1
 	order:		resq 1
 	div_order:	resq 1
 	div_real_arr:	resq 1	
@@ -285,7 +288,7 @@ main:
 
 
 	
-;***********************************
+
 
 
 
@@ -551,8 +554,8 @@ sqroot_s:
 	;fld qword[n]			;st0=n
 	fld qword[rdi]	
 	fsqrt				;st0=sqrt(n)
-	fst qword[rsi]			;n=st0=sqrt(n)
-	mov rax, qword[rsi]		;return_val=n=sqrt(n)	
+	fst qword[return_val1]			;n=st0=sqrt(n)
+	;mov rax, qword[rsi]		;return_val=n=sqrt(n)	
 	
 	funcend
 
@@ -587,8 +590,7 @@ make_normal_s:
 	mov rsi, n			;output=n
 	call sqroot_s
 	returnfunc
-	mov qword[return_val1],rax
-	
+	;mov qword[return_val1],rax	
 	funcend 
 
 
@@ -620,7 +622,6 @@ eval_poly_s:
 	funcstart
 
 	mov qword[i],1			;i=1
-	
 	;*res img=img_arr[0]
 	fld qword[rsi]			;st0=img_arr[0]
 	fst qword[r9]			;*res_img=img_arr[0]
@@ -684,8 +685,7 @@ eval_poly_s:
 
 
 	.end_for:	
-	
-	funcend	
+		funcend	
 
 
 
@@ -750,7 +750,7 @@ newton_rashford_impl_s:
 	mov rcx,fd_img
 	mov r8,c_real
 	mov r9,c_img
-	;call cmplx_div_s
+	call cmplx_div_s
 	returnfunc
 
 	.while:
@@ -763,7 +763,7 @@ newton_rashford_impl_s:
 		returnfunc
 		fld qword[epsilon]
 		fst st1					;st1=st0=epsilon
-		fld qword[tmp]
+		fld qword[return_val1]				;st0=tmp=normal
 		fsub					;st0=normal-epsilon
 		fst qword[tmp]				;tmp=normal-epsilon
 		fldz
@@ -836,7 +836,7 @@ newton_rashford_impl_s:
 
 	 
 
-
+;***********************************
 
 
 
